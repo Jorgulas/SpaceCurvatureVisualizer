@@ -49,11 +49,32 @@ export class UI {
       hudBodies: document.getElementById('hud-bodies'),
       hudPos: document.getElementById('hud-pos'),
       hudFps: document.getElementById('hud-fps'),
+      // Separadores
+      tabs: Array.from(document.querySelectorAll('.tab')),
+      contents: Array.from(document.querySelectorAll('.tab-content')),
+      // Grelha
+      gSize: document.getElementById('g-size'),
+      gSpacing: document.getElementById('g-spacing'),
+      gOpacity: document.getElementById('g-opacity'),
+      gScale: document.getElementById('g-scale'),
+      gCalm: document.getElementById('g-calm'),
+      gHot: document.getElementById('g-hot'),
+      gBg: document.getElementById('g-bg'),
+      gBoundary: document.getElementById('g-boundary'),
+      gReset: document.getElementById('g-reset'),
+      oGSize: document.getElementById('o-gsize'),
+      oGSpacing: document.getElementById('o-gspacing'),
+      oGOpacity: document.getElementById('o-gopacity'),
+      oGScale: document.getElementById('o-gscale'),
+      gPoints: document.getElementById('g-points'),
+      gNodes: document.getElementById('g-nodes'),
     };
 
-    this.onClose = null; // callback quando o menu fecha
+    this.onClose = null;      // callback quando o menu fecha
+    this.onGridChange = null; // callback quando a grelha muda (rebuild = true se mudou tamanho/divisões)
     this._bind();
     this._refresh();
+    this._refreshGrid();
   }
 
   _bind() {
@@ -73,6 +94,32 @@ export class UI {
     });
 
     this.el.close.addEventListener('click', () => this.close());
+
+    // Troca de separadores
+    this.el.tabs.forEach((tab) =>
+      tab.addEventListener('click', () => {
+        const name = tab.dataset.tab;
+        this.el.tabs.forEach((t) => t.classList.toggle('active', t === tab));
+        this.el.contents.forEach((c) =>
+          c.classList.toggle('hidden', c.dataset.content !== name)
+        );
+      })
+    );
+
+    // Grelha: tamanho e distância reconstroem (emitir no 'change' para não
+    // reconstruir a cada pixel arrastado); o 'input' só atualiza as etiquetas.
+    [this.el.gSize, this.el.gSpacing].forEach((inp) => {
+      inp.addEventListener('input', () => this._refreshGrid());
+      inp.addEventListener('change', () => { this._refreshGrid(); this._emitGrid(true); });
+    });
+
+    // Estes não reconstroem a grelha (cor, opacidade, sensibilidade, caixa).
+    [this.el.gOpacity, this.el.gScale, this.el.gCalm, this.el.gHot, this.el.gBg].forEach((inp) =>
+      inp.addEventListener('input', () => { this._refreshGrid(); this._emitGrid(false); })
+    );
+    this.el.gBoundary.addEventListener('change', () => this._emitGrid(false));
+
+    this.el.gReset.addEventListener('click', () => this._resetGrid());
   }
 
   // Tipo que o preset selecionado força (ou 'auto').
@@ -116,6 +163,58 @@ export class UI {
   getTemplate() {
     const vals = this._values();
     return { ...vals, kind: resolveKind(this._presetKind(), vals.volume, vals.density, vals.oscAmp) };
+  }
+
+  // --- Grelha ----------------------------------------------------------------
+  // Divisões (pontos por eixo) derivadas do alcance e da distância entre pontos.
+  _divisions(size, spacing) {
+    return Math.max(4, Math.min(22, Math.round(size / spacing) + 1));
+  }
+
+  _refreshGrid() {
+    const size = parseFloat(this.el.gSize.value);
+    const spacing = parseFloat(this.el.gSpacing.value);
+    const div = this._divisions(size, spacing);
+
+    this.el.oGSize.textContent = size.toFixed(0);
+    this.el.oGSpacing.textContent = spacing.toFixed(1);
+    this.el.oGOpacity.textContent = parseFloat(this.el.gOpacity.value).toFixed(2);
+    this.el.oGScale.textContent = this.el.gScale.value;
+    this.el.gPoints.textContent = div;
+    this.el.gNodes.textContent = (div * div * div).toLocaleString('pt-PT');
+  }
+
+  getGridSettings() {
+    const size = parseFloat(this.el.gSize.value);
+    const spacing = parseFloat(this.el.gSpacing.value);
+    return {
+      size,
+      divisions: this._divisions(size, spacing),
+      opacity: parseFloat(this.el.gOpacity.value),
+      // Slider alto = mais vivo. colorScale = deslocamento a que a cor satura.
+      colorScale: 28 - parseFloat(this.el.gScale.value),
+      calmColor: this.el.gCalm.value,
+      hotColor: this.el.gHot.value,
+      bgColor: this.el.gBg.value,
+      showBoundary: this.el.gBoundary.checked,
+    };
+  }
+
+  _emitGrid(rebuild) {
+    if (this.onGridChange) this.onGridChange(this.getGridSettings(), rebuild);
+  }
+
+  _resetGrid() {
+    this.el.gSize.value = 48;
+    this.el.gSpacing.value = 3.4;
+    this.el.gOpacity.value = 0.5;
+    this.el.gScale.value = 17;
+    this.el.gCalm.value = '#2e8cd9';
+    this.el.gHot.value = '#ff2f93';
+    this.el.gBg.value = '#05060d';
+    this.el.gBoundary.checked = true;
+    this._refreshGrid();
+    this._emitGrid(true);
   }
 
   open() { this.el.menu.classList.remove('hidden'); this._refresh(); }

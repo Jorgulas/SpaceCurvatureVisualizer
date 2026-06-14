@@ -4,9 +4,9 @@ import { Body } from './Body.js';
 import { Controls } from './Controls.js';
 import { UI } from './UI.js';
 
-const GRID_SIZE = 48;
 const SPAWN_DISTANCE = 14;     // distância à frente da câmara onde nasce o corpo
-const SPAWN_BOUND = GRID_SIZE / 2 - 2;
+let gridSize = 48;             // alcance atual da grelha (ajustável no menu)
+let spawnBound = gridSize / 2 - 2;
 
 // --- Renderer / cena / câmara ---------------------------------------------
 const canvas = document.getElementById('scene');
@@ -19,7 +19,7 @@ scene.background = new THREE.Color(0x05060d);
 scene.fog = new THREE.FogExp2(0x05060d, 0.0065);
 
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 500);
-camera.position.set(0, 8, GRID_SIZE * 0.8);
+camera.position.set(0, 8, gridSize * 0.8);
 
 // Luzes (os corpos são em grande parte emissivos, mas isto dá relevo às esferas).
 scene.add(new THREE.AmbientLight(0x404a6b, 1.2));
@@ -30,16 +30,23 @@ scene.add(keyLight);
 // Campo de estrelas de fundo.
 addStarfield();
 
-// Grelha 3D.
-const grid = new SpaceGrid({ size: GRID_SIZE, divisions: 15 });
+// Grelha 3D (valores iniciais coincidem com as predefinições do menu).
+const grid = new SpaceGrid({
+  size: gridSize, divisions: 15,
+  calmColor: '#2e8cd9', hotColor: '#ff2f93', colorScale: 11, opacity: 0.5,
+});
 scene.add(grid.object);
 
-// Caixa subtil a delimitar a região.
-const boundary = new THREE.LineSegments(
-  new THREE.EdgesGeometry(new THREE.BoxGeometry(GRID_SIZE, GRID_SIZE, GRID_SIZE)),
-  new THREE.LineBasicMaterial({ color: 0x1c2a4a, transparent: true, opacity: 0.5 })
-);
+// Caixa subtil a delimitar a região (reconstruída quando o alcance muda).
+const boundaryMat = new THREE.LineBasicMaterial({ color: 0x1c2a4a, transparent: true, opacity: 0.5 });
+const boundary = new THREE.LineSegments(new THREE.BufferGeometry(), boundaryMat);
 scene.add(boundary);
+
+function rebuildBoundary() {
+  boundary.geometry.dispose();
+  boundary.geometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(gridSize, gridSize, gridSize));
+}
+rebuildBoundary();
 
 // --- Estado ----------------------------------------------------------------
 const bodies = [];
@@ -53,7 +60,7 @@ function spawnBody() {
   const pos = camera.position.clone().addScaledVector(dir, SPAWN_DISTANCE);
 
   // Manter dentro da região da grelha.
-  pos.clampScalar(-SPAWN_BOUND, SPAWN_BOUND);
+  pos.clampScalar(-spawnBound, spawnBound);
 
   const t = ui.getTemplate();
   const body = new Body({ position: pos, ...t });
@@ -72,6 +79,23 @@ function undo() {
   const b = bodies.pop();
   if (b) { scene.remove(b.group); b.dispose(); ui.setBodyCount(bodies.length); }
 }
+
+// --- Definições da grelha --------------------------------------------------
+function applyGrid(s, rebuild) {
+  if (rebuild) {
+    gridSize = s.size;
+    spawnBound = gridSize / 2 - 2;
+    grid.rebuild(s.size, s.divisions);
+    rebuildBoundary();
+  }
+  grid.setColors(s.calmColor, s.hotColor);
+  grid.setColorScale(s.colorScale);
+  grid.setOpacity(s.opacity);
+  scene.background.set(s.bgColor);
+  scene.fog.color.set(s.bgColor);
+  boundary.visible = s.showBoundary;
+}
+ui.onGridChange = applyGrid;
 
 // --- Ligações de controlo --------------------------------------------------
 controls.onSpawn = spawnBody;

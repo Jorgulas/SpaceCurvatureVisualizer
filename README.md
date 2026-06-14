@@ -21,6 +21,21 @@ de Node, npm nem passo de build — basta servir os ficheiros.
 | `Z` | desfazer o último corpo |
 | `Esc` | libertar o rato |
 
+## Menu (tecla E)
+
+O menu tem dois separadores:
+
+- **Próximo corpo** — volume, densidade, oscilação e tipo (com predefinições);
+  mostra ao vivo a massa, o raio de Schwarzschild e a classificação resultantes.
+- **Grelha** — gere a visualização da rede:
+  - **Alcance** (tamanho do cubo) e **Distância entre pontos** (densidade da rede);
+    mostra os pontos por eixo e o nº de nós resultantes (limitado a 22³ por
+    desempenho). Mudar estes dois reconstrói a grelha.
+  - **Opacidade das linhas** e **Sensibilidade da cor** (a que ponto de
+    deformação a cor satura).
+  - **Cores**: calma (deformação baixa), intensa (deformação alta) e fundo.
+  - **Mostrar caixa-limite** e **Repor predefinições**.
+
 ## Como funciona a física
 
 Tudo em **unidades visuais** (não no SI), mas mantendo as *relações* reais:

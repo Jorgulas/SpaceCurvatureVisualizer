@@ -47,48 +47,91 @@
   <!-- Menu de parametrização (tecla E) -->
   <div id="menu" class="hidden">
     <div class="menu-card">
-      <h2>Configurar próximo corpo</h2>
+      <div class="tabs">
+        <button class="tab active" data-tab="corpo">Próximo corpo</button>
+        <button class="tab" data-tab="grelha">Grelha</button>
+      </div>
 
-      <label>Predefinição / Tipo
-        <select id="p-preset">
-          <option value="auto">Automático (pela densidade)</option>
-          <option value="planeta">Planeta</option>
-          <option value="estrela">Estrela</option>
-          <option value="ana_branca">Anã branca</option>
-          <option value="pulsar">Pulsar</option>
-          <option value="buraco_negro">Buraco negro</option>
-          <option value="buraco_branco">Buraco branco (hipotético)</option>
-        </select>
-      </label>
+      <!-- Separador: corpo -->
+      <div class="tab-content" data-content="corpo">
+        <label>Predefinição / Tipo
+          <select id="p-preset">
+            <option value="auto">Automático (pela densidade)</option>
+            <option value="planeta">Planeta</option>
+            <option value="estrela">Estrela</option>
+            <option value="ana_branca">Anã branca</option>
+            <option value="pulsar">Pulsar</option>
+            <option value="buraco_negro">Buraco negro</option>
+            <option value="buraco_branco">Buraco branco (hipotético)</option>
+          </select>
+        </label>
 
-      <label>Volume <output id="o-volume"></output>
-        <input type="range" id="p-volume" min="0.5" max="200" step="0.5" value="30" />
-      </label>
+        <label>Volume <output id="o-volume"></output>
+          <input type="range" id="p-volume" min="0.5" max="200" step="0.5" value="30" />
+        </label>
 
-      <label>Densidade <output id="o-density"></output>
-        <input type="range" id="p-density" min="0.2" max="800" step="0.2" value="5" />
-      </label>
+        <label>Densidade <output id="o-density"></output>
+          <input type="range" id="p-density" min="0.2" max="800" step="0.2" value="5" />
+        </label>
 
-      <label>Amplitude de oscilação gravítica <output id="o-oscamp"></output>
-        <input type="range" id="p-oscamp" min="0" max="1" step="0.01" value="0" />
-      </label>
+        <label>Amplitude de oscilação gravítica <output id="o-oscamp"></output>
+          <input type="range" id="p-oscamp" min="0" max="1" step="0.01" value="0" />
+        </label>
 
-      <label>Frequência de oscilação <output id="o-oscfreq"></output>
-        <input type="range" id="p-oscfreq" min="0.1" max="3" step="0.1" value="0.4" />
-      </label>
+        <label>Frequência de oscilação <output id="o-oscfreq"></output>
+          <input type="range" id="p-oscfreq" min="0.1" max="3" step="0.1" value="0.4" />
+        </label>
 
-      <div class="readout">
-        <div><span>Massa</span><b id="r-mass">–</b></div>
-        <div><span>Raio do corpo</span><b id="r-radius">–</b></div>
-        <div><span>Raio de Schwarzschild</span><b id="r-rs">–</b></div>
-        <div><span>Compacidade R<sub>s</sub>/R</span><b id="r-comp">–</b></div>
-        <div class="classification"><span>Classificação</span><b id="r-class">–</b></div>
+        <div class="readout">
+          <div><span>Massa</span><b id="r-mass">–</b></div>
+          <div><span>Raio do corpo</span><b id="r-radius">–</b></div>
+          <div><span>Raio de Schwarzschild</span><b id="r-rs">–</b></div>
+          <div><span>Compacidade R<sub>s</sub>/R</span><b id="r-comp">–</b></div>
+          <div class="classification"><span>Classificação</span><b id="r-class">–</b></div>
+        </div>
+        <p class="hint">Estes valores aplicam-se ao próximo corpo que criares com o clique.</p>
+      </div>
+
+      <!-- Separador: grelha -->
+      <div class="tab-content hidden" data-content="grelha">
+        <label>Alcance (tamanho) <output id="o-gsize"></output>
+          <input type="range" id="g-size" min="24" max="80" step="2" value="48" />
+        </label>
+
+        <label>Distância entre pontos <output id="o-gspacing"></output>
+          <input type="range" id="g-spacing" min="2" max="6" step="0.2" value="3.4" />
+        </label>
+
+        <div class="readout">
+          <div><span>Pontos por eixo</span><b id="g-points">–</b></div>
+          <div><span>Nós na grelha</span><b id="g-nodes">–</b></div>
+        </div>
+
+        <label>Opacidade das linhas <output id="o-gopacity"></output>
+          <input type="range" id="g-opacity" min="0.1" max="1" step="0.05" value="0.5" />
+        </label>
+
+        <label>Sensibilidade da cor <output id="o-gscale"></output>
+          <input type="range" id="g-scale" min="4" max="24" step="1" value="17" />
+        </label>
+
+        <div class="colors">
+          <label class="color">Calma<input type="color" id="g-calm" value="#2e8cd9" /></label>
+          <label class="color">Intensa<input type="color" id="g-hot" value="#ff2f93" /></label>
+          <label class="color">Fundo<input type="color" id="g-bg" value="#05060d" /></label>
+        </div>
+
+        <label class="checkbox"><input type="checkbox" id="g-boundary" checked /> Mostrar caixa-limite</label>
+
+        <div class="menu-actions">
+          <button id="g-reset" class="secondary">Repor predefinições</button>
+        </div>
+        <p class="hint">Mexer no alcance ou na distância reconstrói a grelha.</p>
       </div>
 
       <div class="menu-actions">
         <button id="menu-close">Fechar (E)</button>
       </div>
-      <p class="hint">Estes valores aplicam-se ao próximo corpo que criares com o clique.</p>
     </div>
   </div>
 

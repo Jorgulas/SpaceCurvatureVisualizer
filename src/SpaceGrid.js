@@ -3,12 +3,32 @@ import { displacedPosition } from './physics.js';
 
 // Rede 3D de linhas (lattice) que se deforma sob a gravidade dos corpos.
 // É um único objeto LineSegments cujos vértices recalculamos a cada frame.
+// O tamanho, número de divisões, cores e opacidade são configuráveis.
 export class SpaceGrid {
-  constructor({ size = 48, divisions = 15 } = {}) {
-    this.size = size;        // dimensão do cubo (unidades)
-    this.N = divisions;      // nós por eixo
+  constructor({
+    size = 48,
+    divisions = 15,
+    calmColor = '#2e8cd9',
+    hotColor = '#ff2f93',
+    colorScale = 11,   // deslocamento (unidades) a que a cor satura
+    opacity = 0.5,
+  } = {}) {
+    this.size = size;
+    this.N = divisions;
+    this.calm = new THREE.Color(calmColor);
+    this.hot = new THREE.Color(hotColor);
+    this.colorScale = colorScale;
+
     this._base = new THREE.Vector3();
     this._tmp = new THREE.Vector3();
+
+    this.material = new THREE.LineBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      opacity,
+    });
+    this.object = new THREE.LineSegments(new THREE.BufferGeometry(), this.material);
+
     this._build();
   }
 
@@ -24,7 +44,6 @@ export class SpaceGrid {
     const half = size / 2;
     const count = N * N * N;
 
-    // Posições de repouso e posições deslocadas de cada nó.
     this.nodeBase = new Float32Array(count * 3);
     this.nodeDisp = new Float32Array(count * 3);
 
@@ -61,16 +80,30 @@ export class SpaceGrid {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(this.positions, 3));
     geo.setAttribute('color', new THREE.BufferAttribute(this.colors, 3));
-    const mat = new THREE.LineBasicMaterial({
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.5,
-    });
+
+    if (this.geometry) this.geometry.dispose();
     this.geometry = geo;
-    this.object = new THREE.LineSegments(geo, mat);
+    this.object.geometry = geo;
 
     this._writeVertices();
   }
+
+  // Reconstrói a grelha com novo tamanho / número de divisões.
+  rebuild(size, divisions) {
+    this.size = size;
+    this.N = divisions;
+    this._build();
+  }
+
+  get nodeCount() { return this.nodeBase.length / 3; }
+
+  setColors(calmHex, hotHex) {
+    this.calm.set(calmHex);
+    this.hot.set(hotHex);
+    this._writeVertices();
+  }
+  setColorScale(v) { this.colorScale = v; this._writeVertices(); }
+  setOpacity(v) { this.material.opacity = v; }
 
   // Recalcula a deformação de todos os nós e atualiza a geometria.
   update(bodies, time) {
@@ -97,6 +130,9 @@ export class SpaceGrid {
     const col = this.colors;
     const nd = this.nodeDisp;
     const nb = this.nodeBase;
+    const calm = this.calm;
+    const hot = this.hot;
+    const scale = this.colorScale;
 
     for (let v = 0; v < v2n.length; v++) {
       const n = v2n[v];
@@ -106,15 +142,15 @@ export class SpaceGrid {
       pos[vo + 1] = nd[no + 1];
       pos[vo + 2] = nd[no + 2];
 
-      // Cor por magnitude de deslocamento: ciano (calmo) -> magenta (intenso).
+      // Cor por magnitude de deslocamento: cor "calma" -> cor "intensa".
       const dx = nd[no] - nb[no];
       const dy = nd[no + 1] - nb[no + 1];
       const dz = nd[no + 2] - nb[no + 2];
       const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-      const t = Math.min(d / 11, 1);
-      col[vo] = 0.18 + 0.82 * t;          // R
-      col[vo + 1] = 0.55 * (1 - t) + 0.08; // G
-      col[vo + 2] = 0.85 * (1 - t) + 0.45 * t; // B
+      const t = Math.min(d / scale, 1);
+      col[vo] = calm.r + (hot.r - calm.r) * t;
+      col[vo + 1] = calm.g + (hot.g - calm.g) * t;
+      col[vo + 2] = calm.b + (hot.b - calm.b) * t;
     }
 
     this.geometry.attributes.position.needsUpdate = true;
