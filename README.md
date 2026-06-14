@@ -101,24 +101,6 @@ python -m http.server 8000
 
 Depois abre `http://localhost:8000`.
 
-## Publicar no GitHub Pages
-
-1. Cria um repositório no GitHub e envia estes ficheiros para o ramo `main`:
-   ```bash
-   git init
-   git add .
-   git commit -m "Visualizador de curvatura gravítica 3D"
-   git branch -M main
-   git remote add origin https://github.com/<utilizador>/<repo>.git
-   git push -u origin main
-   ```
-2. No GitHub: **Settings → Pages → Build and deployment**.
-3. Em *Source* escolhe **Deploy from a branch**, ramo **main**, pasta **/ (root)**.
-4. Guarda. Em ~1 min a app fica em `https://<utilizador>.github.io/<repo>/`.
-
-O ficheiro `.nojekyll` garante que o GitHub Pages serve a pasta `src/` sem
-processamento Jekyll.
-
 ## Estrutura
 
 ```
