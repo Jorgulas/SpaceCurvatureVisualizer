@@ -60,7 +60,7 @@ export class UI {
       gCalm: document.getElementById('g-calm'),
       gHot: document.getElementById('g-hot'),
       gBg: document.getElementById('g-bg'),
-      gBoundary: document.getElementById('g-boundary'),
+      gFollow: document.getElementById('g-follow'),
       gReset: document.getElementById('g-reset'),
       oGSize: document.getElementById('o-gsize'),
       oGSpacing: document.getElementById('o-gspacing'),
@@ -68,14 +68,27 @@ export class UI {
       oGScale: document.getElementById('o-gscale'),
       gPoints: document.getElementById('g-points'),
       gNodes: document.getElementById('g-nodes'),
+      // Simulação
+      sEnabled: document.getElementById('s-enabled'),
+      sGrav: document.getElementById('s-grav'),
+      sSpeed: document.getElementById('s-speed'),
+      sOrbit: document.getElementById('s-orbit'),
+      sMerge: document.getElementById('s-merge'),
+      sClearVel: document.getElementById('s-clearvel'),
+      oSGrav: document.getElementById('o-sgrav'),
+      oSSpeed: document.getElementById('o-sspeed'),
+      hudSim: document.getElementById('hud-sim'),
     };
 
-    this.onClose = null;      // callback quando o menu fecha
-    this.onGridChange = null; // callback quando a grelha muda (rebuild = true se mudou tamanho/divisões)
-    this._load();             // restaura definições guardadas
+    this.onClose = null;          // callback quando o menu fecha
+    this.onGridChange = null;     // callback quando a grelha muda (rebuild = true se mudou tamanho/divisões)
+    this.onSimChange = null;      // callback quando as definições da simulação mudam
+    this.onClearVelocities = null; // callback do botão "parar todos os corpos"
+    this._load();                 // restaura definições guardadas
     this._bind();
     this._refresh();
     this._refreshGrid();
+    this._refreshSim();
   }
 
   // --- Persistência (localStorage) -------------------------------------------
@@ -83,7 +96,8 @@ export class UI {
     return [
       this.el.preset, this.el.volume, this.el.density, this.el.oscamp, this.el.oscfreq,
       this.el.gSize, this.el.gSpacing, this.el.gOpacity, this.el.gScale,
-      this.el.gCalm, this.el.gHot, this.el.gBg, this.el.gBoundary,
+      this.el.gCalm, this.el.gHot, this.el.gBg, this.el.gFollow,
+      this.el.sEnabled, this.el.sGrav, this.el.sSpeed, this.el.sOrbit, this.el.sMerge,
     ];
   }
 
@@ -146,9 +160,20 @@ export class UI {
     [this.el.gOpacity, this.el.gScale, this.el.gCalm, this.el.gHot, this.el.gBg].forEach((inp) =>
       inp.addEventListener('input', () => { this._refreshGrid(); this._emitGrid(false); })
     );
-    this.el.gBoundary.addEventListener('change', () => this._emitGrid(false));
+    this.el.gFollow.addEventListener('change', () => this._emitGrid(false));
 
     this.el.gReset.addEventListener('click', () => this._resetGrid());
+
+    // Simulação
+    [this.el.sGrav, this.el.sSpeed].forEach((inp) =>
+      inp.addEventListener('input', () => { this._refreshSim(); this._emitSim(); })
+    );
+    [this.el.sEnabled, this.el.sOrbit, this.el.sMerge].forEach((inp) =>
+      inp.addEventListener('change', () => { this._refreshSim(); this._emitSim(); })
+    );
+    this.el.sClearVel.addEventListener('click', () => {
+      if (this.onClearVelocities) this.onClearVelocities();
+    });
   }
 
   // Tipo que o preset selecionado força (ou 'auto').
@@ -198,7 +223,7 @@ export class UI {
   // --- Grelha ----------------------------------------------------------------
   // Divisões (pontos por eixo) derivadas do alcance e da distância entre pontos.
   _divisions(size, spacing) {
-    return Math.max(4, Math.min(22, Math.round(size / spacing) + 1));
+    return Math.max(4, Math.min(30, Math.round(size / spacing) + 1));
   }
 
   _refreshGrid() {
@@ -226,7 +251,7 @@ export class UI {
       calmColor: this.el.gCalm.value,
       hotColor: this.el.gHot.value,
       bgColor: this.el.gBg.value,
-      showBoundary: this.el.gBoundary.checked,
+      follow: this.el.gFollow.checked,
     };
   }
 
@@ -236,16 +261,45 @@ export class UI {
   }
 
   _resetGrid() {
-    this.el.gSize.value = 48;
-    this.el.gSpacing.value = 3.4;
+    this.el.gSize.value = 256;
+    this.el.gSpacing.value = 9;
     this.el.gOpacity.value = 0.5;
     this.el.gScale.value = 17;
     this.el.gCalm.value = '#2e8cd9';
     this.el.gHot.value = '#ff2f93';
     this.el.gBg.value = '#05060d';
-    this.el.gBoundary.checked = true;
+    this.el.gFollow.checked = true;
     this._refreshGrid();
     this._emitGrid(true);
+  }
+
+  // --- Simulação -------------------------------------------------------------
+  _refreshSim() {
+    this.el.oSGrav.textContent = parseFloat(this.el.sGrav.value).toFixed(2);
+    this.el.oSSpeed.textContent = parseFloat(this.el.sSpeed.value).toFixed(1) + '×';
+    if (this.el.hudSim) this.el.hudSim.textContent = this.el.sEnabled.checked ? 'ligada' : 'pausada';
+  }
+
+  getSimSettings() {
+    return {
+      enabled: this.el.sEnabled.checked,
+      gravity: parseFloat(this.el.sGrav.value),
+      speed: parseFloat(this.el.sSpeed.value),
+      autoOrbit: this.el.sOrbit.checked,
+      merge: this.el.sMerge.checked,
+    };
+  }
+
+  _emitSim() {
+    this._save();
+    if (this.onSimChange) this.onSimChange(this.getSimSettings());
+  }
+
+  // Alterna a simulação (tecla P).
+  toggleSim() {
+    this.el.sEnabled.checked = !this.el.sEnabled.checked;
+    this._refreshSim();
+    this._emitSim();
   }
 
   open() { this.el.menu.classList.remove('hidden'); this._refresh(); }

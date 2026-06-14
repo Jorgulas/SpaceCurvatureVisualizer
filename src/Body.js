@@ -17,6 +17,7 @@ export class Body {
   // kind: 'auto' | 'normal' | 'neutron' | 'pulsar' | 'blackhole' | 'whitehole'
   constructor(params) {
     this.position = params.position.clone();
+    this.velocity = new THREE.Vector3(); // usado pela simulação de N-corpos
     this.volume = params.volume;
     this.density = params.density;
     this.oscAmp = params.oscAmp ?? 0;

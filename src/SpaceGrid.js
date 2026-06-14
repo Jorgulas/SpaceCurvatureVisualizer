@@ -18,9 +18,11 @@ export class SpaceGrid {
     this.calm = new THREE.Color(calmColor);
     this.hot = new THREE.Color(hotColor);
     this.colorScale = colorScale;
+    this.follow = true; // a rede segue a câmara (parece infinita)
 
     this._base = new THREE.Vector3();
     this._tmp = new THREE.Vector3();
+    this._cx = 0; this._cy = 0; this._cz = 0; // centro atual da rede
 
     this.material = new THREE.LineBasicMaterial({
       vertexColors: true,
@@ -104,18 +106,31 @@ export class SpaceGrid {
   }
   setColorScale(v) { this.colorScale = v; this._writeVertices(); }
   setOpacity(v) { this.material.opacity = v; }
+  setFollow(b) { this.follow = b; }
 
   // Recalcula a deformação de todos os nós e atualiza a geometria.
-  update(bodies, time) {
+  // `cameraPos` (opcional) faz a rede seguir a câmara, para parecer infinita.
+  update(bodies, time, cameraPos) {
     const nb = this.nodeBase;
     const nd = this.nodeDisp;
     const count = nb.length / 3;
     const base = this._base;
     const tmp = this._tmp;
 
+    // Centro da rede encaixado no passo: as linhas ficam fixas no espaço-mundo
+    // (não tremem) e a janela renderizada desliza sobre uma rede "infinita".
+    let cx = 0, cy = 0, cz = 0;
+    if (this.follow && cameraPos) {
+      const step = this.size / (this.N - 1);
+      cx = Math.round(cameraPos.x / step) * step;
+      cy = Math.round(cameraPos.y / step) * step;
+      cz = Math.round(cameraPos.z / step) * step;
+    }
+    this._cx = cx; this._cy = cy; this._cz = cz;
+
     for (let n = 0; n < count; n++) {
       const o = n * 3;
-      base.set(nb[o], nb[o + 1], nb[o + 2]);
+      base.set(nb[o] + cx, nb[o + 1] + cy, nb[o + 2] + cz);
       displacedPosition(base, bodies, time, tmp);
       nd[o] = tmp.x;
       nd[o + 1] = tmp.y;
@@ -143,9 +158,9 @@ export class SpaceGrid {
       pos[vo + 2] = nd[no + 2];
 
       // Cor por magnitude de deslocamento: cor "calma" -> cor "intensa".
-      const dx = nd[no] - nb[no];
-      const dy = nd[no + 1] - nb[no + 1];
-      const dz = nd[no + 2] - nb[no + 2];
+      const dx = nd[no] - (nb[no] + this._cx);
+      const dy = nd[no + 1] - (nb[no + 1] + this._cy);
+      const dz = nd[no + 2] - (nb[no + 2] + this._cz);
       const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
       const t = Math.min(d / scale, 1);
       col[vo] = calm.r + (hot.r - calm.r) * t;

@@ -16,10 +16,11 @@ export class Controls {
     this.keys = { w: false, a: false, s: false, d: false, up: false, down: false };
 
     // Callbacks definidos a partir do main.js
-    this.onSpawn = null;       // clique para criar corpo
-    this.onToggleMenu = null;  // tecla E
-    this.onClearAll = null;    // tecla R
-    this.onUndo = null;        // tecla Z
+    this.onSpawn = null;        // clique para criar corpo
+    this.onToggleMenu = null;   // tecla E
+    this.onClearAll = null;     // tecla R
+    this.onUndo = null;         // tecla Z
+    this.onTogglePause = null;  // tecla P
 
     this._forward = new THREE.Vector3();
     this._right = new THREE.Vector3();
@@ -62,6 +63,7 @@ export class Controls {
       case 'KeyE': if (down && this.onToggleMenu) this.onToggleMenu(); break;
       case 'KeyR': if (down && this.onClearAll) this.onClearAll(); break;
       case 'KeyZ': if (down && this.onUndo) this.onUndo(); break;
+      case 'KeyP': if (down && this.onTogglePause) this.onTogglePause(); break;
     }
   }
 

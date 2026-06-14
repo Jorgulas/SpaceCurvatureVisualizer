@@ -23,6 +23,7 @@
   <div id="hud">
     <div class="hud-title">CURVATURA GRAVÍTICA 3D</div>
     <div class="hud-line"><span>Corpos</span><b id="hud-bodies">0</b></div>
+    <div class="hud-line"><span>Simulação</span><b id="hud-sim">ligada</b></div>
     <div class="hud-line"><span>Posição</span><b id="hud-pos">0, 0, 0</b></div>
     <div class="hud-line"><span>FPS</span><b id="hud-fps">–</b></div>
   </div>
@@ -30,7 +31,7 @@
   <!-- Ajuda de teclas -->
   <div id="help">
     <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> mover &nbsp; <kbd>Espaço</kbd>/<kbd>Shift</kbd> subir/descer</div>
-    <div><kbd>Rato</kbd> olhar &nbsp; <kbd>Clique</kbd> criar corpo &nbsp; <kbd>E</kbd> menu &nbsp; <kbd>R</kbd> limpar &nbsp; <kbd>Z</kbd> desfazer</div>
+    <div><kbd>Rato</kbd> olhar &nbsp; <kbd>Clique</kbd> criar corpo &nbsp; <kbd>E</kbd> menu &nbsp; <kbd>P</kbd> pausar &nbsp; <kbd>R</kbd> limpar &nbsp; <kbd>Z</kbd> desfazer</div>
   </div>
 
   <!-- Ecrã inicial / pausa (clicar para capturar o rato) -->
@@ -48,8 +49,9 @@
   <div id="menu" class="hidden">
     <div class="menu-card">
       <div class="tabs">
-        <button class="tab active" data-tab="corpo">Próximo corpo</button>
+        <button class="tab active" data-tab="corpo">Corpo</button>
         <button class="tab" data-tab="grelha">Grelha</button>
+        <button class="tab" data-tab="simulacao">Simulação</button>
       </div>
 
       <!-- Separador: corpo -->
@@ -95,11 +97,11 @@
       <!-- Separador: grelha -->
       <div class="tab-content hidden" data-content="grelha">
         <label>Alcance (tamanho) <output id="o-gsize"></output>
-          <input type="range" id="g-size" min="24" max="80" step="2" value="48" />
+          <input type="range" id="g-size" min="24" max="320" step="4" value="256" />
         </label>
 
         <label>Distância entre pontos <output id="o-gspacing"></output>
-          <input type="range" id="g-spacing" min="2" max="6" step="0.2" value="3.4" />
+          <input type="range" id="g-spacing" min="2" max="28" step="0.5" value="9" />
         </label>
 
         <div class="readout">
@@ -121,12 +123,33 @@
           <label class="color">Fundo<input type="color" id="g-bg" value="#05060d" /></label>
         </div>
 
-        <label class="checkbox"><input type="checkbox" id="g-boundary" checked /> Mostrar caixa-limite</label>
+        <label class="checkbox"><input type="checkbox" id="g-follow" checked /> Seguir câmara (grelha infinita)</label>
 
         <div class="menu-actions">
           <button id="g-reset" class="secondary">Repor predefinições</button>
         </div>
         <p class="hint">Mexer no alcance ou na distância reconstrói a grelha.</p>
+      </div>
+
+      <!-- Separador: simulação -->
+      <div class="tab-content hidden" data-content="simulacao">
+        <label class="checkbox"><input type="checkbox" id="s-enabled" checked /> Simular movimento (tecla P)</label>
+
+        <label>Força gravítica <output id="o-sgrav"></output>
+          <input type="range" id="s-grav" min="0" max="3" step="0.05" value="0.8" />
+        </label>
+
+        <label>Velocidade da simulação <output id="o-sspeed"></output>
+          <input type="range" id="s-speed" min="0.1" max="3" step="0.1" value="1" />
+        </label>
+
+        <label class="checkbox"><input type="checkbox" id="s-orbit" checked /> Órbita automática ao criar</label>
+        <label class="checkbox"><input type="checkbox" id="s-merge" checked /> Fundir em colisão (acreção)</label>
+
+        <div class="menu-actions">
+          <button id="s-clearvel" class="secondary">Parar todos os corpos</button>
+        </div>
+        <p class="hint">Os corpos atraem-se com gravidade real. Cria um corpo pesado (estrela/buraco negro) e depois planetas à volta.</p>
       </div>
 
       <div class="menu-actions">

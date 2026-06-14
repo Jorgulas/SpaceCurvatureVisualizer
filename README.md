@@ -17,6 +17,7 @@ de Node, npm nem passo de build — basta servir os ficheiros.
 | Rato | olhar em volta |
 | Clique esquerdo | criar um corpo à frente da câmara |
 | `E` | abrir/fechar o menu de parametrização |
+| `P` | pausar/retomar a simulação de movimento |
 | `R` | remover todos os corpos |
 | `Z` | desfazer o último corpo |
 | `Esc` | libertar o rato |
@@ -29,17 +30,42 @@ O menu tem dois separadores:
   mostra ao vivo a massa, o raio de Schwarzschild e a classificação resultantes.
 - **Grelha** — gere a visualização da rede:
   - **Alcance** (tamanho do cubo) e **Distância entre pontos** (densidade da rede);
-    mostra os pontos por eixo e o nº de nós resultantes (limitado a 22³ por
+    mostra os pontos por eixo e o nº de nós resultantes (limitado a 30³ por
     desempenho). Mudar estes dois reconstrói a grelha.
   - **Opacidade das linhas** e **Sensibilidade da cor** (a que ponto de
     deformação a cor satura).
   - **Cores**: calma (deformação baixa), intensa (deformação alta) e fundo.
-  - **Mostrar caixa-limite** e **Repor predefinições**.
+  - **Seguir câmara (grelha infinita)** e **Repor predefinições**.
+
+- **Simulação** — movimento gravítico (N-corpos):
+  - **Simular movimento** (tecla `P`) liga/pausa a dinâmica;
+  - **Força gravítica** e **Velocidade da simulação**;
+  - **Órbita automática ao criar** dá ao novo corpo a velocidade de uma órbita
+    ~circular à volta da massa dominante (com recuo no centro para conservar o
+    momento, por isso o "sol" não foge);
+  - **Fundir em colisão** funde corpos que se tocam (acreção — um buraco negro
+    cresce ao engolir planetas);
+  - **Parar todos os corpos** zera as velocidades.
+
+A grelha é **visualmente infinita**: a rede segue a câmara (encaixada no passo,
+para as linhas ficarem fixas no espaço-mundo) e os bordos são escondidos por
+nevoeiro linear — para onde quer que voes, há sempre grelha à tua volta a
+dissolver-se na distância. O **Alcance** controla o raio de renderização. Podes
+desligar isto em **Seguir câmara** para fixar a grelha na origem.
 
 O menu é um **painel lateral** — a cena fica visível ao lado, por isso as
-alterações da grelha vêem-se em tempo real. As definições (corpo e grelha) são
+alterações vêem-se em tempo real. As definições (corpo, grelha e simulação) são
 **guardadas automaticamente** no `localStorage` do browser e restauradas no
 arranque.
+
+## Movimento dos corpos (simulação de N-corpos)
+
+Cada corpo tem velocidade e é acelerado pela gravidade de todos os outros
+(`a = Σ G·mⱼ·r̂ / r²`, com *softening* para evitar singularidades), integrado
+com Euler semi-implético (simplético) e sub-passos para estabilidade. Os buracos
+brancos **repelem** os outros corpos. Receita rápida para órbitas: cria primeiro
+um corpo pesado (estrela ou buraco negro) e depois planetas à volta — nascem já
+em órbita.
 
 ## Como funciona a física
 

@@ -3,10 +3,14 @@ import { SpaceGrid } from './SpaceGrid.js';
 import { Body } from './Body.js';
 import { Controls } from './Controls.js';
 import { UI } from './UI.js';
+import { SIM, integrate, orbitalVelocity, findMerge } from './Simulation.js';
 
 const SPAWN_DISTANCE = 14;     // distância à frente da câmara onde nasce o corpo
-let gridSize = 48;             // alcance atual da grelha (ajustável no menu)
-let spawnBound = gridSize / 2 - 2;
+let gridSize = 256;            // alcance/raio de renderização da grelha (ajustável no menu)
+
+// Nevoeiro linear afinado ao tamanho da grelha: esconde os bordos do cubo para
+// a rede parecer infinita (as linhas distantes dissolvem-se no fundo).
+function fogRange(size) { return { near: size * 0.15, far: size * 0.46 }; }
 
 // --- Renderer / cena / câmara ---------------------------------------------
 const canvas = document.getElementById('scene');
@@ -16,7 +20,8 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x05060d);
-scene.fog = new THREE.FogExp2(0x05060d, 0.0065);
+const fog0 = fogRange(gridSize);
+scene.fog = new THREE.Fog(0x05060d, fog0.near, fog0.far);
 
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 500);
 camera.position.set(0, 8, gridSize * 0.8);
@@ -27,8 +32,8 @@ const keyLight = new THREE.PointLight(0xffffff, 0.6, 0);
 keyLight.position.set(30, 40, 30);
 scene.add(keyLight);
 
-// Campo de estrelas de fundo.
-addStarfield();
+// Campo de estrelas de fundo (segue a câmara, como um skybox).
+const starfield = addStarfield();
 
 // Grelha 3D (valores iniciais coincidem com as predefinições do menu).
 const grid = new SpaceGrid({
@@ -37,19 +42,9 @@ const grid = new SpaceGrid({
 });
 scene.add(grid.object);
 
-// Caixa subtil a delimitar a região (reconstruída quando o alcance muda).
-const boundaryMat = new THREE.LineBasicMaterial({ color: 0x1c2a4a, transparent: true, opacity: 0.5 });
-const boundary = new THREE.LineSegments(new THREE.BufferGeometry(), boundaryMat);
-scene.add(boundary);
-
-function rebuildBoundary() {
-  boundary.geometry.dispose();
-  boundary.geometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(gridSize, gridSize, gridSize));
-}
-rebuildBoundary();
-
 // --- Estado ----------------------------------------------------------------
 const bodies = [];
+const sim = { enabled: true, gravity: 0.8, speed: 1, autoOrbit: true, merge: true };
 const ui = new UI();
 const controls = new Controls(camera, canvas);
 
@@ -59,11 +54,19 @@ function spawnBody() {
   camera.getWorldDirection(dir);
   const pos = camera.position.clone().addScaledVector(dir, SPAWN_DISTANCE);
 
-  // Manter dentro da região da grelha.
-  pos.clampScalar(-spawnBound, spawnBound);
-
   const t = ui.getTemplate();
   const body = new Body({ position: pos, ...t });
+
+  // Velocidade orbital automática à volta da massa dominante (com recuo no
+  // centro para conservar o momento — o "sol" não foge).
+  if (sim.enabled && sim.autoOrbit) {
+    const orb = orbitalVelocity(pos, bodies);
+    if (orb) {
+      body.velocity.copy(orb.velocity);
+      orb.center.velocity.addScaledVector(orb.tangential, -body.mass / orb.center.mass);
+    }
+  }
+
   bodies.push(body);
   scene.add(body.group);
   ui.setBodyCount(bodies.length);
@@ -80,29 +83,88 @@ function undo() {
   if (b) { scene.remove(b.group); b.dispose(); ui.setBodyCount(bodies.length); }
 }
 
+// Funde dois corpos em colisão (acreção): conserva massa e momento.
+function mergeStep() {
+  const pair = findMerge(bodies);
+  if (!pair) return;
+  const [i, j] = pair; // j > i
+  const a = bodies[i];
+  const b = bodies[j];
+  const m = a.mass + b.mass;
+  const volume = a.volume + b.volume;
+  const density = m / volume;
+  const big = a.mass >= b.mass ? a : b;
+  const position = a.position.clone().multiplyScalar(a.mass)
+    .addScaledVector(b.position, b.mass).multiplyScalar(1 / m);
+  const velocity = a.velocity.clone().multiplyScalar(a.mass)
+    .addScaledVector(b.velocity, b.mass).multiplyScalar(1 / m);
+  const kind = (a.kind === 'blackhole' || b.kind === 'blackhole') ? 'blackhole' : 'auto';
+
+  scene.remove(a.group); a.dispose();
+  scene.remove(b.group); b.dispose();
+  bodies.splice(j, 1);
+  bodies.splice(i, 1);
+
+  const merged = new Body({ position, volume, density, oscAmp: big.oscAmp, oscFreq: big.oscFreq, kind });
+  merged.velocity.copy(velocity);
+  bodies.push(merged);
+  scene.add(merged.group);
+  ui.setBodyCount(bodies.length);
+}
+
+// Remove corpos que escaparam para muito longe da câmara (mundo infinito).
+function cleanupFar() {
+  const limit = gridSize * 5;
+  let removed = false;
+  for (let i = bodies.length - 1; i >= 0; i--) {
+    if (bodies[i].position.distanceTo(camera.position) > limit) {
+      const b = bodies[i];
+      scene.remove(b.group); b.dispose();
+      bodies.splice(i, 1);
+      removed = true;
+    }
+  }
+  if (removed) ui.setBodyCount(bodies.length);
+}
+
 // --- Definições da grelha --------------------------------------------------
 function applyGrid(s, rebuild) {
   if (rebuild) {
     gridSize = s.size;
-    spawnBound = gridSize / 2 - 2;
     grid.rebuild(s.size, s.divisions);
-    rebuildBoundary();
+    const f = fogRange(gridSize);
+    scene.fog.near = f.near;
+    scene.fog.far = f.far;
   }
   grid.setColors(s.calmColor, s.hotColor);
   grid.setColorScale(s.colorScale);
   grid.setOpacity(s.opacity);
+  grid.setFollow(s.follow);
   scene.background.set(s.bgColor);
   scene.fog.color.set(s.bgColor);
-  boundary.visible = s.showBoundary;
 }
 ui.onGridChange = applyGrid;
 // Sincroniza a cena com as definições guardadas (ou predefinições) ao arrancar.
 applyGrid(ui.getGridSettings(), true);
 
+// --- Definições da simulação -----------------------------------------------
+function applySim(s) {
+  sim.enabled = s.enabled;
+  sim.gravity = s.gravity;
+  sim.speed = s.speed;
+  sim.autoOrbit = s.autoOrbit;
+  sim.merge = s.merge;
+  SIM.G = s.gravity;
+}
+ui.onSimChange = applySim;
+ui.onClearVelocities = () => { for (const b of bodies) b.velocity.set(0, 0, 0); };
+applySim(ui.getSimSettings());
+
 // --- Ligações de controlo --------------------------------------------------
 controls.onSpawn = spawnBody;
 controls.onClearAll = clearAll;
 controls.onUndo = undo;
+controls.onTogglePause = () => ui.toggleSim();
 controls.onToggleMenu = () => {
   if (ui.isOpen) {
     ui.close();
@@ -140,7 +202,13 @@ function animate() {
   const time = clock.elapsedTime;
 
   controls.update(dt);
-  grid.update(bodies, time);
+  if (sim.enabled) {
+    integrate(bodies, dt * sim.speed);
+    if (sim.merge) mergeStep();
+    cleanupFar();
+  }
+  grid.update(bodies, time, camera.position);
+  starfield.position.copy(camera.position);
   for (const b of bodies) b.update(time);
 
   renderer.render(scene, camera);
@@ -169,6 +237,9 @@ function addStarfield() {
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const mat = new THREE.PointsMaterial({ color: 0x9fb4e8, size: 0.7, sizeAttenuation: true });
-  scene.add(new THREE.Points(geo, mat));
+  // fog: false para as estrelas não desaparecerem com o nevoeiro da grelha.
+  const mat = new THREE.PointsMaterial({ color: 0x9fb4e8, size: 0.7, sizeAttenuation: true, fog: false });
+  const points = new THREE.Points(geo, mat);
+  scene.add(points);
+  return points;
 }
