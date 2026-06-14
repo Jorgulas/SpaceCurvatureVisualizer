@@ -36,6 +36,11 @@ O menu tem dois separadores:
   - **Cores**: calma (deformação baixa), intensa (deformação alta) e fundo.
   - **Mostrar caixa-limite** e **Repor predefinições**.
 
+O menu é um **painel lateral** — a cena fica visível ao lado, por isso as
+alterações da grelha vêem-se em tempo real. As definições (corpo e grelha) são
+**guardadas automaticamente** no `localStorage` do browser e restauradas no
+arranque.
+
 ## Como funciona a física
 
 Tudo em **unidades visuais** (não no SI), mas mantendo as *relações* reais:

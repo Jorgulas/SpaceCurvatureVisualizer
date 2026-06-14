@@ -140,21 +140,24 @@ button {
 button:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(95,208,255,0.3); }
 
 /* Menu de parametrização */
+/* Painel lateral: não tapa a cena, para se ver o efeito em tempo real. */
 #menu {
   position: fixed;
   inset: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(2, 3, 8, 0.55);
-  backdrop-filter: blur(3px);
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 16px;
+  background: transparent;
+  pointer-events: none; /* só o cartão captura cliques; a cena fica interativa */
   z-index: 15;
 }
 #menu.hidden { display: none; }
 .menu-card {
-  width: 380px;
+  pointer-events: auto;
+  width: 360px;
   max-width: 92vw;
-  max-height: 92vh;
+  max-height: calc(100vh - 32px);
   overflow-y: auto;
   background: var(--panel);
   border: 1px solid var(--border);

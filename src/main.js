@@ -96,16 +96,24 @@ function applyGrid(s, rebuild) {
   boundary.visible = s.showBoundary;
 }
 ui.onGridChange = applyGrid;
+// Sincroniza a cena com as definições guardadas (ou predefinições) ao arrancar.
+applyGrid(ui.getGridSettings(), true);
 
 // --- Ligações de controlo --------------------------------------------------
 controls.onSpawn = spawnBody;
 controls.onClearAll = clearAll;
 controls.onUndo = undo;
 controls.onToggleMenu = () => {
-  if (ui.isOpen) ui.close();
-  else { controls.unlock(); ui.open(); }
+  if (ui.isOpen) {
+    ui.close();
+  } else {
+    controls.unlock();
+    overlay.classList.add('hidden'); // não deixar o overlay tapar o menu
+    ui.open();
+  }
 };
-ui.onClose = () => { /* o utilizador reclica para voltar a capturar o rato */ };
+// Ao fechar o menu sem o rato capturado, voltar a mostrar o "clica para começar".
+ui.onClose = () => { if (!controls.locked) overlay.classList.remove('hidden'); };
 
 // Overlay inicial.
 const overlay = document.getElementById('overlay');

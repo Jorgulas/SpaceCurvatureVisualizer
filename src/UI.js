@@ -72,9 +72,38 @@ export class UI {
 
     this.onClose = null;      // callback quando o menu fecha
     this.onGridChange = null; // callback quando a grelha muda (rebuild = true se mudou tamanho/divisões)
+    this._load();             // restaura definições guardadas
     this._bind();
     this._refresh();
     this._refreshGrid();
+  }
+
+  // --- Persistência (localStorage) -------------------------------------------
+  _persisted() {
+    return [
+      this.el.preset, this.el.volume, this.el.density, this.el.oscamp, this.el.oscfreq,
+      this.el.gSize, this.el.gSpacing, this.el.gOpacity, this.el.gScale,
+      this.el.gCalm, this.el.gHot, this.el.gBg, this.el.gBoundary,
+    ];
+  }
+
+  _save() {
+    const data = {};
+    for (const el of this._persisted()) {
+      data[el.id] = el.type === 'checkbox' ? el.checked : el.value;
+    }
+    try { localStorage.setItem('cgv-settings', JSON.stringify(data)); } catch (e) { /* ignora */ }
+  }
+
+  _load() {
+    let data;
+    try { data = JSON.parse(localStorage.getItem('cgv-settings')); } catch (e) { return; }
+    if (!data) return;
+    for (const el of this._persisted()) {
+      if (!(el.id in data)) continue;
+      if (el.type === 'checkbox') el.checked = data[el.id];
+      else el.value = data[el.id];
+    }
   }
 
   _bind() {
@@ -157,6 +186,7 @@ export class UI {
 
     const kind = resolveKind(this._presetKind(), v, d, a);
     this.el.rClass.textContent = KIND_LABEL[kind] ?? kind;
+    this._save();
   }
 
   // Parâmetros do próximo corpo a criar.
@@ -201,6 +231,7 @@ export class UI {
   }
 
   _emitGrid(rebuild) {
+    this._save();
     if (this.onGridChange) this.onGridChange(this.getGridSettings(), rebuild);
   }
 
