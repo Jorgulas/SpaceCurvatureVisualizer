@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visualizador de Curvatura Gravítica 3D</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+
+  <!-- Mira central -->
+  <div id="crosshair">+</div>
+
+  <!-- HUD: informação de estado -->
+  <div id="hud">
+    <div class="hud-title">CURVATURA GRAVÍTICA 3D</div>
+    <div class="hud-line"><span>Corpos</span><b id="hud-bodies">0</b></div>
+    <div class="hud-line"><span>Posição</span><b id="hud-pos">0, 0, 0</b></div>
+    <div class="hud-line"><span>FPS</span><b id="hud-fps">–</b></div>
+  </div>
+
+  <!-- Ajuda de teclas -->
+  <div id="help">
+    <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> mover &nbsp; <kbd>Espaço</kbd>/<kbd>Shift</kbd> subir/descer</div>
+    <div><kbd>Rato</kbd> olhar &nbsp; <kbd>Clique</kbd> criar corpo &nbsp; <kbd>E</kbd> menu &nbsp; <kbd>R</kbd> limpar &nbsp; <kbd>Z</kbd> desfazer</div>
+  </div>
+
+  <!-- Ecrã inicial / pausa (clicar para capturar o rato) -->
+  <div id="overlay">
+    <div class="overlay-card">
+      <h1>Visualizador de Curvatura Gravítica 3D</h1>
+      <p>Move-te com <b>WASD</b>, olha com o <b>rato</b> e <b>clica</b> para criar um corpo.
+         Carrega em <b>E</b> para configurar o próximo corpo (volume, densidade, oscilação, tipo).</p>
+      <button id="start-btn">Clica para começar</button>
+      <p class="hint">Premir <kbd>Esc</kbd> liberta o rato.</p>
+    </div>
+  </div>
+
+  <!-- Menu de parametrização (tecla E) -->
+  <div id="menu" class="hidden">
+    <div class="menu-card">
+      <h2>Configurar próximo corpo</h2>
+
+      <label>Predefinição / Tipo
+        <select id="p-preset">
+          <option value="auto">Automático (pela densidade)</option>
+          <option value="planeta">Planeta</option>
+          <option value="estrela">Estrela</option>
+          <option value="ana_branca">Anã branca</option>
+          <option value="pulsar">Pulsar</option>
+          <option value="buraco_negro">Buraco negro</option>
+          <option value="buraco_branco">Buraco branco (hipotético)</option>
+        </select>
+      </label>
+
+      <label>Volume <output id="o-volume"></output>
+        <input type="range" id="p-volume" min="0.5" max="200" step="0.5" value="30" />
+      </label>
+
+      <label>Densidade <output id="o-density"></output>
+        <input type="range" id="p-density" min="0.2" max="800" step="0.2" value="5" />
+      </label>
+
+      <label>Amplitude de oscilação gravítica <output id="o-oscamp"></output>
+        <input type="range" id="p-oscamp" min="0" max="1" step="0.01" value="0" />
+      </label>
+
+      <label>Frequência de oscilação <output id="o-oscfreq"></output>
+        <input type="range" id="p-oscfreq" min="0.1" max="3" step="0.1" value="0.4" />
+      </label>
+
+      <div class="readout">
+        <div><span>Massa</span><b id="r-mass">–</b></div>
+        <div><span>Raio do corpo</span><b id="r-radius">–</b></div>
+        <div><span>Raio de Schwarzschild</span><b id="r-rs">–</b></div>
+        <div><span>Compacidade R<sub>s</sub>/R</span><b id="r-comp">–</b></div>
+        <div class="classification"><span>Classificação</span><b id="r-class">–</b></div>
+      </div>
+
+      <div class="menu-actions">
+        <button id="menu-close">Fechar (E)</button>
+      </div>
+      <p class="hint">Estes valores aplicam-se ao próximo corpo que criares com o clique.</p>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
